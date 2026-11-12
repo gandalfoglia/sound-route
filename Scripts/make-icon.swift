@@ -11,33 +11,31 @@ func render(size: CGFloat) -> Data {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
     // macOS icon grid: 824pt rounded square centred in a 1024pt canvas.
+    // Flat design: a priority list of three bars; the top one is "the route in use".
     let s = size / 1024
-    let rect = NSRect(x: 100 * s, y: 100 * s, width: 824 * s, height: 824 * s)
-    let shape = NSBezierPath(roundedRect: rect, xRadius: 185 * s, yRadius: 185 * s)
-
-    NSGraphicsContext.current?.saveGraphicsState()
-    let shadow = NSShadow()
-    shadow.shadowColor = .black.withAlphaComponent(0.3)
-    shadow.shadowBlurRadius = 20 * s
-    shadow.shadowOffset = NSSize(width: 0, height: -8 * s)
-    shadow.set()
-    NSColor.black.setFill()
-    shape.fill()
-    NSGraphicsContext.current?.restoreGraphicsState()
-
-    NSGradient(colors: [
-        NSColor(red: 0.36, green: 0.42, blue: 1.00, alpha: 1),
-        NSColor(red: 0.62, green: 0.30, blue: 0.95, alpha: 1),
-    ])!.draw(in: shape, angle: -70)
-
-    let config = NSImage.SymbolConfiguration(pointSize: 420 * s, weight: .semibold)
-        .applying(.init(paletteColors: [.white]))
-    if let symbol = NSImage(systemSymbolName: "speaker.wave.2.fill", accessibilityDescription: nil)?
-        .withSymbolConfiguration(config) {
-        let sz = symbol.size
-        symbol.draw(in: NSRect(x: (size - sz.width) / 2, y: (size - sz.height) / 2,
-                               width: sz.width, height: sz.height))
+    func r(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> NSRect {
+        NSRect(x: x * s, y: y * s, width: w * s, height: h * s)
     }
+    func pill(_ rect: NSRect, _ color: NSColor) {
+        color.setFill()
+        NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2).fill()
+    }
+
+    let paper = NSColor(red: 0.96, green: 0.94, blue: 0.90, alpha: 1)   // warm off-white
+    let ink = NSColor(red: 0.13, green: 0.13, blue: 0.14, alpha: 1)     // near black
+    let signal = NSColor(red: 0.93, green: 0.33, blue: 0.18, alpha: 1)  // vermilion
+
+    paper.setFill()
+    NSBezierPath(roundedRect: r(100, 100, 824, 824), xRadius: 185 * s, yRadius: 185 * s).fill()
+
+    // Top bar (in use) with a dot marking the active device.
+    pill(r(230, 600, 564, 110), signal)
+    paper.setFill()
+    NSBezierPath(ovalIn: r(254, 624, 62, 62)).fill()
+
+    // Lower priorities.
+    pill(r(230, 457, 420, 110), ink)
+    pill(r(230, 314, 280, 110), ink.withAlphaComponent(0.35))
 
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!
